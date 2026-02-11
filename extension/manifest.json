@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Israeli Supermarket Cart Filler",
+  "version": "1.0.0",
+  "description": "Automatically fills shopping carts from your comparison list",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://shop-compare-89a46.web.app/*",
+    "https://*.shufersal.co.il/*",
+    "https://*.rami-levy.co.il/*",
+    "https://*.ybitan.co.il/*",
+    "https://*.victory.co.il/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://shop-compare-89a46.web.app/*"],
+      "js": ["bridge.js"]
+    },
+    {
+      "matches": ["https://*.shufersal.co.il/*"],
+      "js": ["retailers/shufersal.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.rami-levy.co.il/*"],
+      "js": ["retailers/rami_levy.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

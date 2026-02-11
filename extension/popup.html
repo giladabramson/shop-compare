@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 320px;
+      padding: 16px;
+      font-family: system-ui, sans-serif;
+    }
+    h2 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+    }
+    .status {
+      padding: 12px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      border: 1px solid #bae6fd;
+      margin-bottom: 12px;
+    }
+    .list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .item {
+      padding: 6px;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 13px;
+    }
+    .item:last-child {
+      border-bottom: none;
+    }
+    .empty {
+      color: #9ca3af;
+      text-align: center;
+      padding: 20px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🛒 Cart Filler</h2>
+  <div id="status" class="status">
+    <div id="statusText">No active export</div>
+  </div>
+  <div id="itemsList" class="list"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
