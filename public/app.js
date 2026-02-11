@@ -1,79 +1,17 @@
+const PRICE_FILES = [
+  {
+    market: "Shufersal",
+    path: "/PriceFull7290027600007-002-202602110300.xml",
+  },
+  {
+    market: "Mahsanei Hashuk",
+    path: "/mahsanei_hashuk.xml",
+  },
+];
+
 const data = {
-  supermarkets: ["Shufersal", "Rami Levi", "Yenot Bitan", "Victory"],
-  products: [
-    {
-      id: "milk-1l",
-      name: "Milk 3%",
-      category: "Dairy",
-      unit: "1L",
-      prices: {
-        Shufersal: 6.4,
-        "Rami Levi": 5.9,
-        "Yenot Bitan": 6.2,
-        Victory: 6.1,
-      },
-    },
-    {
-      id: "eggs-12",
-      name: "Eggs",
-      category: "Dairy",
-      unit: "12 pcs",
-      prices: {
-        Shufersal: 12.5,
-        "Rami Levi": 11.9,
-        "Yenot Bitan": 12.1,
-        Victory: 12.0,
-      },
-    },
-    {
-      id: "rice-1kg",
-      name: "Basmati Rice",
-      category: "Pantry",
-      unit: "1kg",
-      prices: {
-        Shufersal: 10.9,
-        "Rami Levi": 9.8,
-        "Yenot Bitan": 10.4,
-        Victory: 10.1,
-      },
-    },
-    {
-      id: "chicken-1kg",
-      name: "Chicken Breast",
-      category: "Meat",
-      unit: "1kg",
-      prices: {
-        Shufersal: 29.9,
-        "Rami Levi": 27.4,
-        "Yenot Bitan": 28.7,
-        Victory: 28.5,
-      },
-    },
-    {
-      id: "tomatoes-1kg",
-      name: "Tomatoes",
-      category: "Produce",
-      unit: "1kg",
-      prices: {
-        Shufersal: 8.5,
-        "Rami Levi": 7.8,
-        "Yenot Bitan": 8.1,
-        Victory: 8.0,
-      },
-    },
-    {
-      id: "olive-oil-750",
-      name: "Olive Oil",
-      category: "Pantry",
-      unit: "750ml",
-      prices: {
-        Shufersal: 36.9,
-        "Rami Levi": 34.5,
-        "Yenot Bitan": 35.4,
-        Victory: 35.1,
-      },
-    },
-  ],
+  supermarkets: PRICE_FILES.map((file) => file.market),
+  products: [],
 };
 
 const searchInput = document.getElementById("searchInput");
@@ -90,6 +28,95 @@ let activeCategory = "All";
 let lastCompared = null;
 
 const formatPrice = (value) => value.toFixed(2);
+
+const buildUnit = (item) => {
+  const unit = item.unitQty ? item.unitQty : "";
+  const quantity = item.quantity ? item.quantity : "";
+  if (!unit && !quantity) return "";
+  if (!unit) return `${quantity}`;
+  if (!quantity) return unit;
+  return `${quantity} ${unit}`;
+};
+
+const normalizeName = (value) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0590-\u05ff\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const parsePriceXml = (xmlText, market) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlText, "text/xml");
+  const items = Array.from(doc.querySelectorAll("Item"));
+
+  return items
+    .map((item) => {
+      const getText = (tag) => item.querySelector(tag)?.textContent?.trim() || "";
+      const itemCode = getText("ItemCode");
+      const name = getText("ItemName");
+      const priceRaw = getText("ItemPrice");
+      const unitQty = getText("UnitQty");
+      const quantity = getText("Quantity");
+      const price = Number.parseFloat(priceRaw);
+
+      if (!itemCode || !name || Number.isNaN(price)) return null;
+
+      const normalizedName = normalizeName(name);
+
+      return {
+        id: itemCode || `name:${normalizedName}`,
+        name,
+        normalizedName,
+        category: "Uncategorized",
+        unit: buildUnit({ unitQty, quantity }),
+        prices: {
+          [market]: price,
+        },
+      };
+    })
+    .filter(Boolean);
+};
+
+const mergeProducts = (target, incoming) => {
+  const map = new Map(target.map((product) => [product.id, product]));
+
+  incoming.forEach((product) => {
+    const existing = map.get(product.id);
+    if (!existing) {
+      map.set(product.id, product);
+      return;
+    }
+
+    existing.prices = { ...existing.prices, ...product.prices };
+    if (!existing.unit && product.unit) {
+      existing.unit = product.unit;
+    }
+  });
+
+  return Array.from(map.values());
+};
+
+const loadPriceFiles = async () => {
+  resultsCount.textContent = "Loading items...";
+  try {
+    let merged = [];
+    for (const file of PRICE_FILES) {
+      const response = await fetch(file.path, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Failed to load price file (${response.status})`);
+      }
+      const xmlText = await response.text();
+      const products = parsePriceXml(xmlText, file.market);
+      merged = mergeProducts(merged, products);
+    }
+    data.products = merged;
+  } catch (error) {
+    console.error(error);
+    resultsCount.textContent = "Failed to load price file.";
+    data.products = [];
+  }
+};
 
 const buildCategories = () => {
   const categories = ["All", ...new Set(data.products.map((p) => p.category))];
@@ -156,13 +183,23 @@ const renderProducts = () => {
       const bestText = best.market
         ? `${formatPrice(best.price)} at ${best.market}`
         : "No market selected";
+      const hasBoth = data.supermarkets.every(
+        (market) => product.prices[market] !== undefined
+      );
+      const shufersalPrice = product.prices.Shufersal;
+      const mahsaneiPrice = product.prices["Mahsanei Hashuk"];
       return `
         <tr>
           <td>${product.name}</td>
           <td>${product.category}</td>
           <td>${product.unit}</td>
+          <td>${shufersalPrice !== undefined ? formatPrice(shufersalPrice) : "—"}</td>
+          <td>${mahsaneiPrice !== undefined ? formatPrice(mahsaneiPrice) : "—"}</td>
           <td>${bestText}</td>
-          <td><button class="compare" data-id="${product.id}">Compare</button></td>
+          <td>
+            ${hasBoth ? "Both markets" : "Single market"}
+            <button class="compare" data-id="${product.id}">Compare</button>
+          </td>
         </tr>
       `;
     })
@@ -225,7 +262,13 @@ categorySelect.addEventListener("change", (event) => {
 maxPriceInput.addEventListener("input", renderProducts);
 resetFilters.addEventListener("click", resetAll);
 
-buildCategories();
-buildMarkets();
-renderProducts();
-comparisonCard.innerHTML = "<p class=\"muted\">Select a product to compare.</p>";
+const init = async () => {
+  await loadPriceFiles();
+  activeMarkets = new Set(data.supermarkets);
+  buildCategories();
+  buildMarkets();
+  renderProducts();
+  comparisonCard.innerHTML = "<p class=\"muted\">Select a product to compare.</p>";
+};
+
+init();

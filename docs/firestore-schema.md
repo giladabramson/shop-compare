@@ -30,6 +30,8 @@ Fields:
 - `categories` (array of string)
 - `unitSize` (string)
 - `normalizedName` (string)
+- `nameLower` (string)
+- `nameTokens` (array of string)
 - `updatedAt` (timestamp)
 
 #### Subcollection: `products/{productId}/retailerItems/{retailerId}`
@@ -78,9 +80,10 @@ Fields:
 ## Suggested indexes
 - `storeItems` collection group: `storeId` + `price`
 - `storeItems` collection group: `storeId` + `productId`
-- `products`: `normalizedName` (for search), `categories`
+- `products`: `nameLower` (for search), `categories`
 
 ## Notes
 - Keep `storeItems` for fast reads and `history` for audit and trend analysis.
 - Use `products/{productId}/retailerItems` to map universal products to internal retailer IDs.
 - Normalize product names for search (lowercase, remove punctuation, collapse spaces).
+- Store `nameTokens` (split on spaces) to support simple prefix search in React.
