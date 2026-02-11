@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "rgb-guess-v2",
+    "shop-compare": "shop-compare-89a46"
+  },
+  "targets": {},
+  "etags": {}
+}
