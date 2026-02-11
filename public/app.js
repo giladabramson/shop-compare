@@ -45,10 +45,12 @@ const normalizeName = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const isBarcodeLike = (value) => /^\d{11,14}$/.test(value);
+
 const parsePriceXml = (xmlText, market) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlText, "text/xml");
-  const items = Array.from(doc.querySelectorAll("Item"));
+  const items = Array.from(doc.querySelectorAll("Item, Product"));
 
   return items
     .map((item) => {
@@ -63,9 +65,13 @@ const parsePriceXml = (xmlText, market) => {
       if (!itemCode || !name || Number.isNaN(price)) return null;
 
       const normalizedName = normalizeName(name);
+      const matchKey = isBarcodeLike(itemCode)
+        ? `barcode:${itemCode}`
+        : `name:${normalizedName}`;
 
       return {
-        id: itemCode || `name:${normalizedName}`,
+        id: matchKey,
+        itemCode,
         name,
         normalizedName,
         category: "Uncategorized",
